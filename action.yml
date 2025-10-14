@@ -1,4 +1,4 @@
-name: "Dokploy Deploy"
+name: "Dokploy Webhook Deploy Action"
 description: "POST a Git-style payload to a Dokploy webhook"
 author: "Tim Lanzi"
 branding:
