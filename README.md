@@ -83,7 +83,7 @@ commit_message: "Manual deploy of ${{ github.sha }}"
 ```yaml
 - name: Dokploy Deployment
   id: dokploy
-  uses: your-org/dokploy-deploy-action@v1
+  uses: TimLanzi/dokploy-deploy-action@v1
   with:
     webhook_url: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
 
