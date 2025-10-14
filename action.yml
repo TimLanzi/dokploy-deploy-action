@@ -58,7 +58,7 @@ runs:
         fi
         # If still empty, leave as empty string (jq will encode it safely)
 
-        PAYLOAD="$(
+        PAYLOAD=$(
           jq -n \
             --arg ref "$REF" \
             --arg sha "$SHA" \
@@ -73,20 +73,9 @@ runs:
               pusher: { name: $actor },
               github_event: $event
             }'
-        )"
+        )
 
-        # Export for next step
-        echo "payload<<EOF" >> "$GITHUB_OUTPUT"
-        echo "$PAYLOAD" >> "$GITHUB_OUTPUT"
-        echo "EOF" >> "$GITHUB_OUTPUT"
-
-    - name: POST to Dokploy
-      shell: bash
-      env:
-        WEBHOOK_URL: ${{ inputs.webhook_url }}
-      run: |
-        set -euo pipefail
         curl -sS -X POST "$WEBHOOK_URL" \
           -H "Content-Type: application/json" \
           -H "X-GitHub-Event: ${GITHUB_EVENT_NAME}" \
-          -d '${{ steps.build.outputs.payload }}'
+          -d "$PAYLOAD"
