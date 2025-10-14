@@ -1,0 +1,92 @@
+name: "Dokploy Deploy"
+description: "POST a Git-style payload to a Dokploy webhook"
+author: "Tim Lanzi"
+branding:
+  icon: 'send'
+  color: 'blue'
+
+inputs:
+  webhook_url:
+    description: "Dokploy webhook URL (use a secret in the caller workflow)"
+    required: true
+  commit_message:
+    description: "Optional commit message override. If empty, tries git log; else leaves blank."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Ensure jq is available
+      shell: bash
+      run: |
+        if ! command -v jq >/dev/null 2>&1; then
+          if command -v apt-get >/dev/null 2>&1; then
+            sudo apt-get update -y && sudo apt-get install -y jq
+          elif command -v apk >/dev/null 2>&1; then
+            sudo apk add --no-cache jq || apk add --no-cache jq
+          elif command -v brew >/dev/null 2>&1; then
+            brew install jq
+          else
+            echo "jq is required but could not be installed automatically." >&2
+            exit 1
+          fi
+        fi
+
+    - name: Build payload
+      id: build
+      shell: bash
+      env:
+        INPUT_COMMIT_MESSAGE: ${{ inputs.commit_message }}
+      run: |
+        set -euo pipefail
+
+        # Gather basics from runner env
+        REF="${GITHUB_REF}"
+        SHA="${GITHUB_SHA}"
+        REPO="${GITHUB_REPOSITORY}"
+        ACTOR="${GITHUB_ACTOR}"
+        EVENT_NAME="${GITHUB_EVENT_NAME}"
+
+        # Determine commit message
+        COMMIT_MSG="${INPUT_COMMIT_MESSAGE}"
+        if [ -z "$COMMIT_MSG" ]; then
+          if [ -d .git ] && command -v git >/dev/null 2>&1; then
+            # If the repo has been checked out, try to read the message
+            COMMIT_MSG="$(git log -1 --pretty=%B 2>/dev/null || true)"
+          fi
+        fi
+        # If still empty, leave as empty string (jq will encode it safely)
+
+        PAYLOAD="$(
+          jq -n \
+            --arg ref "$REF" \
+            --arg sha "$SHA" \
+            --arg message "$COMMIT_MSG" \
+            --arg repo "$REPO" \
+            --arg actor "$ACTOR" \
+            --arg event "$EVENT_NAME" \
+            '{
+              ref: $ref,
+              head_commit: { id: $sha, message: $message },
+              repository: { full_name: $repo },
+              pusher: { name: $actor },
+              github_event: $event
+            }'
+        )"
+
+        # Export for next step
+        echo "payload<<EOF" >> "$GITHUB_OUTPUT"
+        echo "$PAYLOAD" >> "$GITHUB_OUTPUT"
+        echo "EOF" >> "$GITHUB_OUTPUT"
+
+    - name: POST to Dokploy
+      shell: bash
+      env:
+        WEBHOOK_URL: ${{ inputs.webhook_url }}
+      run: |
+        set -euo pipefail
+        curl -sS -X POST "$WEBHOOK_URL" \
+          -H "Content-Type: application/json" \
+          -H "X-GitHub-Event: ${GITHUB_EVENT_NAME}" \
+          -d '${{ steps.build.outputs.payload }}'
