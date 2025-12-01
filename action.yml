@@ -52,6 +52,7 @@ runs:
         REPO="${GITHUB_REPOSITORY}"
         ACTOR="${GITHUB_ACTOR}"
         EVENT_NAME="${GITHUB_EVENT_NAME}"
+        PACKAGE="${PACKAGE_URL}"
 
         # Determine commit message
         COMMIT_MSG="${INPUT_COMMIT_MESSAGE}"
@@ -71,7 +72,7 @@ runs:
             --arg repo "$REPO" \
             --arg actor "$ACTOR" \
             --arg event "$EVENT_NAME" \
-            --arg package_url "$PACKAGE_URL" \
+            --arg package_url "$PACKAGE" \
             '{
               ref: $ref,
               head_commit: { id: $sha, message: $message },
