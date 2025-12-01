@@ -9,6 +9,9 @@ inputs:
   webhook_url:
     description: "Dokploy webhook URL (use a secret in the caller workflow)"
     required: true
+  package_url:
+    description: Docker image URL
+    required: true
   commit_message:
     description: "Optional commit message override. If empty, tries git log; else leaves blank."
     required: false
@@ -39,6 +42,7 @@ runs:
       env:
         WEBHOOK_URL: ${{ inputs.webhook_url }}
         INPUT_COMMIT_MESSAGE: ${{ inputs.commit_message }}
+        PACKAGE_URL: ${{ inputs.package_url }}
       run: |
         set -euo pipefail
 
@@ -67,12 +71,14 @@ runs:
             --arg repo "$REPO" \
             --arg actor "$ACTOR" \
             --arg event "$EVENT_NAME" \
+            --arg package_url "$PACKAGE_URL" \
             '{
               ref: $ref,
               head_commit: { id: $sha, message: $message },
               repository: { full_name: $repo },
               pusher: { name: $actor },
-              github_event: $event
+              github_event: $event,
+              registry_package: {package_version: {package_url: $package_url}}
             }'
         )
 

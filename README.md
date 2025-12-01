@@ -25,6 +25,7 @@ The action collects metadata from the GitHub runner (ref, sha, repo, actor, and 
 |----------------|----------|---------|-------------------------------------------------------------------------------------------------------------------------------------|
 | webhook_url    | Yes      | —       | Dokploy webhook URL. Store it as a secret in caller repos.                                                                          |
 | commit_message | No       | ""      | Optional override. If not provided and the repo is checked out, the action attempts `git log -1 --pretty=%B`. Empty string otherwise. |
+| package_url    | Yes      | -       | Package URL for a Docker image. Necessary after a breaking change to Dokploy's webhook usage |
 
 ## Outputs
 
